@@ -3,8 +3,8 @@ const express = require('express');
 const morgan = require('morgan');
 const cors = require('cors');
 const helmet = require('helmet');
-const ArticlesService = require('./articles-service')
 const { NODE_ENV } = require('../config');
+const articlesRouter = require('./articles/articles-router')
 
 const app = express();
 
@@ -29,33 +29,12 @@ app.use((error, req, res, next) => {
   res.status(500).send(response);
 });
 
-
-app.get('/articles', (req, res, next) => {
-  const db = req.app.get('db');
-  ArticlesService.getAllArticles(db)
-    .then(articles => {
-      res.json(articles)
-    })
-    .catch(next)
-})
-
-app.get('/articles/:article_id', (req, res, next) => {
-  const db = req.app.get('db');
-  ArticlesService.getById(db, req.params.article_id)
-    .then(article => {
-      if (!article) {
-        return res.status(404).json({
-          error: { message: `Article doesn't exist` }
-        })
-      }
-      res.json(article)
-    })
-    .catch(next)
-})
-
-app.get('/', (req, res) => {
-  res.send('Hello, world!');
+app.get('/xss', (req, res) => {
+  res.cookie('secretToken', '1234567890');
+  res.sendFile(__dirname + '/xss-example.html');
 });
+
+app.use('/articles', articlesRouter)
 
 app.use((error, req, res, next) => {
   let response;
