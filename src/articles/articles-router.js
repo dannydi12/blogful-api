@@ -6,6 +6,15 @@ const path = require('path')
 const articlesRouter = express.Router()
 const jsonParser = express.json()
 
+const serializeArticle = article => ({
+  id: article.id,
+  style: article.style,
+  title: xss(article.title),
+  content: xss(article.content),
+  date_published: article.date_published,
+  author: article.author,
+})
+
 articlesRouter
   .route('/')
   .get((req, res, next) => {
@@ -18,7 +27,7 @@ articlesRouter
       .catch(next)
   })
   .post(jsonParser, (req, res, next) => {
-    const { title, content, style } = req.body
+    const { title, content, style, author } = req.body
     const newArticle = { title, content, style }
     for (const [key, value] of Object.entries(newArticle)) {
       if (value == null) {
@@ -27,9 +36,12 @@ articlesRouter
         })
       }
     }
+
+    newArticle.author = author;
+
     ArticlesService.insertArticle(
       req.app.get('db'),
-      newArticle
+      serializeArticle(newArticle) 
     )
       .then(article => {
         res
@@ -59,13 +71,7 @@ articlesRouter
       .catch(next)
   })
   .get((req, res, next) => {
-    res.json({
-      id: res.article.id,
-      style: res.article.style,
-      title: xss(res.article.title), // sanitize title
-      content: xss(res.article.content), // sanitize content
-      date_published: res.article.date_published,
-    })
+    res.json(serializeArticle(res.article))
   })
   .delete((req, res, next) => {
     ArticlesService.deleteArticle(

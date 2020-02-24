@@ -1,6 +1,7 @@
 const knex = require('knex')
 const app = require('../src/app')
 const { makeArticlesArray } = require('./articles.fixtures')
+const { makeUsersArray } = require('./users.fixtures')
 
 describe('Articles Endpoints', function () {
   let db
@@ -15,16 +16,24 @@ describe('Articles Endpoints', function () {
 
   after('disconnect from db', () => db.destroy())
 
-  beforeEach('clean the table', () => db('blogful_articles').truncate())
+  before('clean the table', () => db.raw('TRUNCATE blogful_articles, blogful_users, blogful_comments RESTART IDENTITY CASCADE'))
+
+  afterEach('cleanup', () => db.raw('TRUNCATE blogful_articles, blogful_users, blogful_comments RESTART IDENTITY CASCADE'))
 
   describe('GET /api/articles', () => {
     context('Given there are articles in the database', () => {
+      const testUsers = makeUsersArray();
       const testArticles = makeArticlesArray()
 
       beforeEach('insert articles', () => {
         return db
-          .into('blogful_articles')
-          .insert(testArticles)
+          .into('blogful_users')
+          .insert(testUsers)
+          .then(() => {
+            return db
+              .into('blogful_articles')
+              .insert(testArticles)
+          })
       })
 
       it('GET /api/articles responds with 200 and all of the articles', () => {
@@ -47,12 +56,18 @@ describe('Articles Endpoints', function () {
 
   describe('GET /api/articles/:id', () => {
     context('Given there are articles in the database', () => {
+      const testUsers = makeUsersArray();
       const testArticles = makeArticlesArray()
 
       beforeEach('insert articles', () => {
         return db
-          .into('blogful_articles')
-          .insert(testArticles)
+          .into('blogful_users')
+          .insert(testUsers)
+          .then(() => {
+            return db
+              .into('blogful_articles')
+              .insert(testArticles)
+          })
       })
 
       it('GET /api/articles/:article_id responds with 200 and the specified article', () => {
@@ -99,12 +114,19 @@ describe('Articles Endpoints', function () {
   })
 
   describe(`POST /api/articles`, () => {
+    const testUsers = makeUsersArray();
+
+    beforeEach('insert malicious article', () => {
+      return db
+        .into('blogful_users')
+        .insert(testUsers)
+    })
     it(`creates an article, responding with 201 and the new article`, function () {
       this.retries(3)
       const newArticle = {
         title: 'Test new article',
         style: 'Listicle',
-        content: 'Test new article content...'
+        content: 'Test new article content...',
       }
       return supertest(app)
         .post('/api/articles')
@@ -133,7 +155,8 @@ describe('Articles Endpoints', function () {
       const newArticle = {
         title: 'Test new article',
         style: 'Listicle',
-        content: 'Test new article content...'
+        content: 'Test new article content...',
+        // author: 1
       }
 
       it(`responds with 400 and an error message when the '${field}' is missing`, () => {
@@ -160,12 +183,18 @@ describe('Articles Endpoints', function () {
     })
 
     context('Given there are articles in the database', () => {
+      const testUsers = makeUsersArray();
       const testArticles = makeArticlesArray()
 
       beforeEach('insert articles', () => {
         return db
-          .into('blogful_articles')
-          .insert(testArticles)
+          .into('blogful_users')
+          .insert(testUsers)
+          .then(() => {
+            return db
+              .into('blogful_articles')
+              .insert(testArticles)
+          })
       })
 
       it('responds with 204 and removes the article', () => {
@@ -183,7 +212,7 @@ describe('Articles Endpoints', function () {
     })
   })
 
-  describe.only(`PATCH /api/articles/:article_id`, () => {
+  describe(`PATCH /api/articles/:article_id`, () => {
     context(`Given no articles`, () => {
       it(`responds with 404`, () => {
         const articleId = 123456
@@ -193,12 +222,18 @@ describe('Articles Endpoints', function () {
       })
     })
     context('Given there are articles in the database', () => {
+      const testUsers = makeUsersArray();
       const testArticles = makeArticlesArray()
 
       beforeEach('insert articles', () => {
         return db
-          .into('blogful_articles')
-          .insert(testArticles)
+          .into('blogful_users')
+          .insert(testUsers)
+          .then(() => {
+            return db
+              .into('blogful_articles')
+              .insert(testArticles)
+          })
       })
 
       it('responds with 204 and updates the article', () => {
@@ -210,7 +245,8 @@ describe('Articles Endpoints', function () {
         }
         const expectedArticle = {
           ...testArticles[idToUpdate - 1],
-          ...updateArticle
+          ...updateArticle,
+          content: updateArticle.content,
         }
         return supertest(app)
           .patch(`/api/articles/${idToUpdate}`)

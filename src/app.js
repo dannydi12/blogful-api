@@ -4,7 +4,9 @@ const morgan = require('morgan');
 const cors = require('cors');
 const helmet = require('helmet');
 const { NODE_ENV } = require('../config');
-const articlesRouter = require('./articles/articles-router')
+const articlesRouter = require('./articles/articles-router');
+const usersRouter = require('./user/users-router');
+const commentsRouter = require('./comments/comments-router');
 
 const app = express();
 
@@ -35,6 +37,8 @@ app.get('/xss', (req, res) => {
 });
 
 app.use('/api/articles', articlesRouter)
+app.use('/api/users', usersRouter)
+app.use('/api/comments', commentsRouter)
 
 app.use((error, req, res, next) => {
   let response;
