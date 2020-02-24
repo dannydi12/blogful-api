@@ -34,7 +34,7 @@ app.get('/xss', (req, res) => {
   res.sendFile(__dirname + '/xss-example.html');
 });
 
-app.use('/articles', articlesRouter)
+app.use('/api/articles', articlesRouter)
 
 app.use((error, req, res, next) => {
   let response;
